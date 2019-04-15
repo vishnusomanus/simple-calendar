@@ -18,9 +18,22 @@
             crossorigin="anonymous"></script>
     <script src="dist/jquery.simple-calendar.js"></script>
     <script>
+        var startDate = new Date(new Date().setDate(new Date().getDate()+1));
+        var endDate = new Date(new Date().setHours(startDate.getHours()+1));
         $(document).ready(function(){
-            $("#container").simpleCalendar({
-                fixedStartDay: false
+            var today = new Date();
+            var cal = $("#container").simpleCalendar({
+                fixedStartDay: false,
+                events: [
+                    // generate new event to tomorrow's date for one hour
+                    {
+                        startDate: startDate.toISOString(),
+                        endDate: endDate.toISOString(),
+                        description: 'Big Event!',
+                        location: 'Eiffel Tower',
+                        summary: 'Visit of the Eiffel Tower'
+                    }
+                ]
             });
         });
     </script>

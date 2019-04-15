@@ -11,11 +11,11 @@
             days: ['sunday','monday','tuesday','wenesday','thursday','friday','saturday'], //string of days starting from sunday
             minDate : "YYYY-MM-DD", // minimum date
             maxDate : "YYYY-MM-DD", // maximum date
-            insertEvent: true, // can insert events
-            displayEvent: true, // display existing event
+            displayYear: true, // display year in header
             fixedStartDay: true, // Week begin always by monday
-            event: [], //List of event
-            insertCallback : function(){} // Callback when an event is added to the calendar
+            displayEvent: true, // display existing event
+            events: [], //List of event
+            onMonthChange : function(month){} // Callback when the calendar change month
         };
 
     // The actual plugin constructor
@@ -37,8 +37,8 @@
             var calendar = $('<div class="calendar"></div>');
             var header = $('<header>'+
                            '<h2 class="month"></h2>'+
-                           '<a class="btn btn-prev" href="#"><</a>'+
-                           '<a class="btn btn-next" href="#">></a>'+
+                           '<a class="btn btn-prev" href="#"></a>'+
+                           '<a class="btn btn-next" href="#"></a>'+
 				            '</header>');
             
             this.updateHeader(todayDate,header);
@@ -52,7 +52,9 @@
         
         //Update the current month header
         updateHeader: function (date, header) {
-            header.find('.month').html(this.settings.months[date.getMonth()]);
+            var monthText = this.settings.months[date.getMonth()];
+            monthText += this.settings.displayYear ? ' ' + date.getFullYear() : '';
+            header.find('.month').text(monthText);
         },
         
         //Build calendar of a month from date
@@ -91,19 +93,30 @@
                 var tr = $('<tr></tr>');
                 //For each row
                 for(var i = 0; i<7; i++) {
-                    var td = $('<td><a href="#" class="day">'+day.getDate()+'</a></td>');
+                    var td = $('<td><div class="day">'+day.getDate()+'</div></td>');
                     //if today is this day
                     if(day.toDateString() === (new Date).toDateString()){
                         td.find(".day").addClass("today");
                     }
+
                     //if day is not in this month
                     if(day.getMonth() != fromDate.getMonth()){
                        td.find(".day").addClass("wrong-month"); 
                     }
-                    //Binding day event
-                    td.on('click', function(e) {
-                        plugin.fillUp($(plugin.element),e.pageX,e.pageY);
+
+                    // filter today's events
+                    var todayEvents = plugin.settings.events.filter(function(event){
+                        return plugin.isSameday(new Date(event.startDate), day) || plugin.isSameday(new Date(event.endDate), day);
                     });
+
+                    if(todayEvents.length) {
+                        td.find(".day").addClass("has-event");
+
+                        //Binding day event
+                        td.on('click', function(e) {
+                            plugin.fillUp($(plugin.element),e.pageX,e.pageY);
+                        });
+                    }
                     
                     tr.append(td);
                     day.setDate(day.getDate() + 1);
@@ -119,22 +132,24 @@
             calendar.append(body);
             calendar.append(eventContainer);
         },
+        changeMonth: function (value) {
+            this.currentDate.setMonth(this.currentDate.getMonth()+value);
+            this.buildCalendar(this.currentDate, $('.calendar'));
+            this.updateHeader(this.currentDate, $('.calendar header'));
+            this.settings.onMonthChange(this.currentDate.getMonth(), this.currentDate.getFullYear())
+        },
         //Init global events listeners
         bindEvents: function () {
             var plugin = this;
             
             //Click previous month
             $('.btn-prev').click(function(){
-                plugin.currentDate.setMonth(plugin.currentDate.getMonth()-1);
-                plugin.buildCalendar(plugin.currentDate, $('.calendar'));
-                plugin.updateHeader(plugin.currentDate, $('.calendar header'));
+                plugin.changeMonth(-1)
             });
             
             //Click next month
             $('.btn-next').click(function(){
-                plugin.currentDate.setMonth(plugin.currentDate.getMonth()+1);
-                plugin.buildCalendar(plugin.currentDate, $('.calendar'));
-                plugin.updateHeader(plugin.currentDate, $('.calendar header'));
+                plugin.changeMonth(1)
             });
         },
         //Small effect to fillup a container
@@ -174,6 +189,11 @@
             }, 500, function() {
                 filler.remove();
             });
+        },
+        isSameday : function (d1, d2) {
+            return d1.getFullYear() === d2.getFullYear() &&
+                d1.getMonth() === d2.getMonth() &&
+                d1.getDate() === d2.getDate();
         }
     });
 
